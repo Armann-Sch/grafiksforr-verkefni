@@ -51,14 +51,10 @@ window.onload = function intit() {
         vec2(-0,95, 0,9)
     ]
 
-    var bullet_verts = [];
-
     //
     var bufferID = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferID);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.DYNAMIC_DRAW);
-
-    
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.DYNAMIC_DRAW);    
 
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
@@ -71,7 +67,7 @@ window.onload = function intit() {
         if(e.button === 1 && bulletcount < bulletlimit) {
             var x = vertices[1][0] -0.25;
             var y = vertices[1][1];
-            bullet_verts.push((x, y));  // New bullet will be added starting from the top of the triangle
+            bullet_verts.push(makeBullet(x, y));  // New bullet will be added starting from the top of the triangle
         }
 
     });
