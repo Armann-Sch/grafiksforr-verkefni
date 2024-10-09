@@ -5,6 +5,9 @@ var gl;
 // 
 var numVertices = 36;
 
+var points = [];
+var colors = [];
+
 var movement = false;
 var spinX = 0;
 var spinY = 0;
@@ -17,79 +20,93 @@ var matrixLoc;
 var grid;
 var newgrid;
 
-
-grid = new Array(12);
-for (i = 0; i < grid.length; i++) {
-    grid[i] = new Array(12);
-    for (j = 0; j < grid[i].length; j++) {
-        grid[i][j] = new Array(12);
-    }
-}
-grid.fill(0);
-
-console.log(grid[11][11][11]);
-/*
 grid = new Array(10);
-for (i = 0; i < grid.length; i++) {
+newgrid = new Array(10);
+for (var i = 0; i < grid.length; i++) {
     grid[i] = new Array(10);
     newgrid[i] = new Array(10);
-    for (j = 0; j < grid[i].length; j++) {
+    for (var j = 0; j < grid[i].length; j++) {
         grid[i][j] = new Array(10);
         newgrid[i][j] = new Array(10);
-        for (k = 0; k < grid[i][j].length; k++) {
-            var l = Math.random();
-            if(l <= 0.45) { grid[i][j][k] = 1; }
-            else { grid[i][j][k] = 0; }
-            newgrid[i][j][k] = 0;
+        grid[i][j].fill(0);
+        newgrid[i][j].fill(0);
+    }
+}
+
+// Insert life into grid with a specified spawnrate
+function spreadLife(grid, spawnrate) {
+    for (var i = 0; i < grid.length; i++) {
+        for (var j = 0; j < grid.length; j++) {
+            for (var k = 0; k < grid.length; k++) {
+                if (Math.random() <= spawnrate) {
+                    grid[i][j][k] = 1;
+                }
+                else {
+                    grid[i][j][k] = 0;
+                }
+            }
         }
     }
 }
 
-function checkLife(oldGrid) {
-    for(i = 0; i < oldGrid.length; i++) {
-        if(i == 0) {
-            xmin = 0;
-            xmax = 1;
-        }
-        else if( i == oldGrid.length-1) {
-            xmin = i-1;
-            xmax = i;
-        }
-        else {
-            xmin = i-1;
-            xmax = i+1;
-        }
-        for(j = 0; oldGrid[i].length; j++) {
-            if (j == 0) {
-                ymin = 0;
-                ymax = 1;
-            }
-            else if (j == oldGrid[i].length-1) {
-                ymin = j-1;
-                ymax = j;
-            }
-            else {
-                ymin = j-1;
-                ymax = j+1;
-            }
-            for (k = 0; oldGrid[i][j].length; k++) {
-                if (k == 0) {
-                    zmin = 0;
-                    zmax = 1;
-                }
-                else if (k == oldGrid[i][j].length-1) {
+function count(x, y, z) {
+    var count = -1;
+    var xmin = x-1;
+    var xmax = x+1;
+    var ymin = y-1;
+    var ymax = y+1;
+    var zmin = z-1;
+    var zmax = z+1;
+    var limit = grid.length-1;
 
-                }
+    if (x == 0) { xmin = 0; }
+    else if (x == limit) { xmax = x; }
+    if (y == 0) { ymin = 0; }
+    else if (y == limit) { ymax = y; }
+    if (z == 0) { zmin = 0; }
+    else if (z == limit) { zmax = z; }
+
+    for (var i = xmin; i <= xmax; i++) {
+        for (var j = ymin; j <= ymax; j++) {
+            for (var k = zmin; k <= zmax; k++) {
+                if (grid[i][j][k] == 1) { count++; }
             }
         }
-
     }
-    // Edge cases to remember:
-    // // Left or right
-    // // Top or bottom
-    // // Front or back
+
+    if (count == 6) {
+        newgrid[x][y][z] = 1;
+    }
+    else if (grid[x][y][z] == 1 && (count == 5 || count == 7)) {
+        newgrid[x][y][z] = 1;
+    }
+    else {
+        newgrid[x][y][z] = 0;
+    }
 }
-*/
+
+function checkLife() {
+    for (var i = 0; i < grid.length; i++) {
+        for (var j = 0; j < grid.length; j++) {
+            for (var k = 0; k < grid.length; k++) {
+                count(i, j, k);
+            }
+        }
+    }
+
+    for (var i = 0; i < grid.length; i++) {
+        for (var j = 0; j < grid[i].length; j++) {
+            for (var k = 0; k < grid[i][j].length; k++) {
+                grid[i][j][k] = newgrid[i][j][k];
+            }
+        }
+    }
+}
+
+spreadLife(grid, 0.45);
+
+checkLife();
+
 function colorCube() {
     quad( 1, 0, 3, 2 );
     quad( 2, 3, 7, 6 );
@@ -128,16 +145,86 @@ function quad(a, b, c, d) {
     for ( var i = 0; i < indices.length; ++i ) {
         points.push( vertices[indices[i]] );
         colors.push(vertexColors[a]);
-        
     }
 }
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
 
+    gl = WebGLUtils.setupWebGL(canvas);
+    if (!gl) { alert("WebGL isn't available");}
 
+    colorCube();
+
+    gl.viewport(0, 0, canvas.clientWidth, canvas.height);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+
+    gl.enable(gl.DEPTH_TEST);
+
+
+    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    gl.useProgram( program );
+    
+    var cBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer );
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW );
+
+    var vColor = gl.getAttribLocation( program, "vColor" );
+    gl.vertexAttribPointer( vColor, 4, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( vColor );
+
+    var vBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW );
+
+    var vPosition = gl.getAttribLocation( program, "vPosition" );
+    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( vPosition );
+
+    matrixLoc = gl.getUniformLocation( program, "transform" );
+
+    canvas.addEventListener("mousedown", function(e) {
+        movement = true;
+        origX = e.offsetX;
+        origY = e.offsetY;
+        e.preventDefault()
+    } );
+
+    canvas.addEventListener("mouseup", function(e) {
+        movement = false;
+    } );
+
+    canvas.addEventListener("mousemove", function(e) {
+        if(movement) {
+            spinY = (spinY + (origX - e.offsetX)) % 360;
+            spinX = (spinX + (origY - e.offsetY)) % 360;
+            origX = e.offsetX;
+            origY = e.offsetY;
+        }
+    } );
+
+    render();
 }
 
 function render() {
+    gl.clear(gl.COlOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    var mv = mat4();
+    mv = mult(mv, rotateX(spinX));
+    mv = mult(mv, rotateY(spinY));
+
+    for (var i = 0; i < grid.length; i++) {
+        for (var j = 0; j < grid.length; j++) {
+            for (var k = 0; k < grid.length; k++) {
+                if (grid[i][j][k] == 1) {
+                    mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
+                    mv1 = mult(mv1, scalem(0.08, 0.08, 0.08));
+                    gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
+                    gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+                }
+            }
+        }
+    }
+
+    requestAnimationFrame(render);
 }
