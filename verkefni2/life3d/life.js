@@ -88,10 +88,10 @@ function count(x, y, z) {
         }
     }
 
-    if (grid[x][y][z] == 1 && (count >= 5 && count <= 7)) {
+    if (count == 6) {
         newgrid[x][y][z] = 1;
     }
-    else if (count == 6) {
+    else if (grid[x][y][z] == 1 && (count >= 5 && count <= 7)) {
         newgrid[x][y][z] = 1;
     }
     else {
