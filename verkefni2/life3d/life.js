@@ -1,8 +1,6 @@
-
 var canvas;
 var gl;
-
-// 
+ 
 var numVertices = 36;
 
 var points = [];
@@ -20,16 +18,32 @@ var matrixLoc;
 var grid;
 var newgrid;
 
-grid = new Array(10);
-newgrid = new Array(10);
-for (var i = 0; i < grid.length; i++) {
-    grid[i] = new Array(10);
-    newgrid[i] = new Array(10);
-    for (var j = 0; j < grid[i].length; j++) {
-        grid[i][j] = new Array(10);
-        newgrid[i][j] = new Array(10);
-        grid[i][j].fill(0);
-        newgrid[i][j].fill(0);
+// Variables used to define the interval between checks
+var time = 0;
+var interval = 5;
+
+var neighbormin = 5;
+var neighbormax = 7;
+var neighbornew = [6];
+
+// Variables subtracted from the value when sclaing a growing or shrinking cube
+var deathsubtract = 0; 
+var birthsubstract = 0.06;
+
+
+// Grid sizes are defined and the grids filled in with zeroes
+function createGrids(width, height, depth){
+    grid = new Array(width);
+    newgrid = new Array(width);
+    for (var i = 0; i < grid.length; i++) {
+        grid[i] = new Array(height);
+        newgrid[i] = new Array(height);
+        for (var j = 0; j < grid[i].length; j++) {
+            grid[i][j] = new Array(depth);
+            newgrid[i][j] = new Array(depth);
+            grid[i][j].fill(0);
+            newgrid[i][j].fill(0);
+        }
     }
 }
 
@@ -74,10 +88,10 @@ function count(x, y, z) {
         }
     }
 
-    if (count == 6) {
+    if (grid[x][y][z] == 1 && (count >= 5 && count <= 7)) {
         newgrid[x][y][z] = 1;
     }
-    else if (grid[x][y][z] == 1 && (count == 5 || count == 7)) {
+    else if (count == 6) {
         newgrid[x][y][z] = 1;
     }
     else {
@@ -93,7 +107,9 @@ function checkLife() {
             }
         }
     }
+}
 
+function updateGrid() {
     for (var i = 0; i < grid.length; i++) {
         for (var j = 0; j < grid[i].length; j++) {
             for (var k = 0; k < grid[i][j].length; k++) {
@@ -102,10 +118,6 @@ function checkLife() {
         }
     }
 }
-
-spreadLife(grid, 0.45);
-
-checkLife();
 
 function colorCube() {
     quad( 1, 0, 3, 2 );
@@ -147,6 +159,12 @@ function quad(a, b, c, d) {
         colors.push(vertexColors[a]);
     }
 }
+
+createGrids(10, 10, 10);
+
+spreadLife(grid, 0.2);
+
+checkLife();
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -216,15 +234,49 @@ function render() {
     for (var i = 0; i < grid.length; i++) {
         for (var j = 0; j < grid.length; j++) {
             for (var k = 0; k < grid.length; k++) {
-                if (grid[i][j][k] == 1) {
-                    mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
-                    mv1 = mult(mv1, scalem(0.08, 0.08, 0.08));
-                    gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
-                    gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+                if (newgrid[i][j][k] == 1) {
+                    if (grid[i][j][k] == 1) {
+                        // Cube remains the same
+                        mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
+                        mv1 = mult(mv1, scalem(0.08, 0.08, 0.08));
+                        gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
+                        gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+                    }
+                    else {
+                        // Cube is growing
+                        mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
+                        mv1 = mult(mv1, scalem(0.08-birthsubstract, 0.08-birthsubstract, 0.08-birthsubstract));
+                        gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
+                        gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+                    }
                 }
+                else if(grid[i][j][k]) {
+                    mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
+                        mv1 = mult(mv1, scalem(0.08-deathsubtract, 0.08-deathsubtract, 0.08-deathsubtract));
+                        gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
+                        gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+                }
+                
+                /*if (grid[i][j][k] == 1) {
+                    
+                }
+                */
+
+               
             }
         }
     }
-
+    time++;
+    if (time >= 3) {
+        time = 0;
+        deathsubtract += 0.01;
+        birthsubstract -= 0.01;
+        if (deathsubtract >= 0.06) {
+            deathsubtract = 0.0;
+            birthsubstract = 0.06;
+            updateGrid();
+            checkLife();
+        }
+    }
     requestAnimationFrame(render);
 }
