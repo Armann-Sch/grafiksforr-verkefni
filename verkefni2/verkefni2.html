@@ -30,6 +30,22 @@
         <script type="text/javascript" src="life3d/life.js"></script>
     </head>
     <body>
+        <div list-style="none">
+            <ul >
+                <li>
+                    Time Interval: 0<input id="timeInterval" type="range" min="0" max="5" step="0.5" value="3">5
+                </li>
+                <li>
+                    Life probability: 0<input id="lifeChance" type="range" min="0" max="1" step="0.05" value="0.20">1
+                </li>
+                <li>
+                    Press space to restart.
+                </li>
+                <li>
+                    Press p to pause/unpause
+                </li>
+            </ul>
+        </div>
         <canvas id="gl-canvas" width="800" height="800">
         <br>
     

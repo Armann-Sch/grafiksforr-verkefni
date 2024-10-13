@@ -19,12 +19,11 @@ var grid;
 var newgrid;
 
 // Variables used to define the interval between checks
+var paused = false;
 var time = 0;
 var interval = 5;
 
-var neighbormin = 5;
-var neighbormax = 7;
-var neighbornew = [6];
+var liferate = 0.2;
 
 // Variables subtracted from the value when sclaing a growing or shrinking cube
 var deathsubtract = 0; 
@@ -48,7 +47,7 @@ function createGrids(width, height, depth){
 }
 
 // Insert life into grid with a specified spawnrate
-function spreadLife(grid, spawnrate) {
+function spreadLife(spawnrate) {
     for (var i = 0; i < grid.length; i++) {
         for (var j = 0; j < grid.length; j++) {
             for (var k = 0; k < grid.length; k++) {
@@ -64,7 +63,7 @@ function spreadLife(grid, spawnrate) {
 }
 
 function count(x, y, z) {
-    var count = -1;
+    var count = -1; // Start at -1 because the cell being checked is also counted
     var xmin = x-1;
     var xmax = x+1;
     var ymin = y-1;
@@ -73,6 +72,7 @@ function count(x, y, z) {
     var zmax = z+1;
     var limit = grid.length-1;
 
+    // Check for edges
     if (x == 0) { xmin = 0; }
     else if (x == limit) { xmax = x; }
     if (y == 0) { ymin = 0; }
@@ -99,6 +99,7 @@ function count(x, y, z) {
     }
 }
 
+// Grid is checked for life
 function checkLife() {
     for (var i = 0; i < grid.length; i++) {
         for (var j = 0; j < grid.length; j++) {
@@ -109,6 +110,7 @@ function checkLife() {
     }
 }
 
+// The values of the new grid are put into the old grid
 function updateGrid() {
     for (var i = 0; i < grid.length; i++) {
         for (var j = 0; j < grid[i].length; j++) {
@@ -162,7 +164,7 @@ function quad(a, b, c, d) {
 
 createGrids(10, 10, 10);
 
-spreadLife(grid, 0.2);
+spreadLife(liferate);
 
 checkLife();
 
@@ -221,6 +223,30 @@ window.onload = function init() {
         }
     } );
 
+    // Event listeners for changing parameters
+    // Change the time interval for changes
+    document.getElementById("timeInterval").onchange = function(event) {
+        interval = event.target.value;
+    }
+    
+    // Change the probabilty of a square being filled at the start
+    document.getElementById("lifeChance").onchange = function(event) {
+        liferate = event.target.value;
+    }
+
+    window.addEventListener("keydown", function(e){
+        switch (e.keyCode) {
+            case 32:
+                createGrids(10, 10, 10);
+                spreadLife(liferate);
+                checkLife();
+                break;
+            case 80:
+                paused = !paused;
+            
+        }
+    })
+
     render();
 }
 
@@ -255,19 +281,14 @@ function render() {
                         mv1 = mult(mv1, scalem(0.08-deathsubtract, 0.08-deathsubtract, 0.08-deathsubtract));
                         gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
                         gl.drawArrays(gl.TRIANGLES, 0, numVertices);
-                }
-                
-                /*if (grid[i][j][k] == 1) {
-                    
-                }
-                */
-
-               
+                }               
             }
         }
     }
-    time++;
-    if (time >= 3) {
+
+    if (!paused) { time += 0.5; }
+    
+    if (time >= interval) {
         time = 0;
         deathsubtract += 0.01;
         birthsubstract -= 0.01;
