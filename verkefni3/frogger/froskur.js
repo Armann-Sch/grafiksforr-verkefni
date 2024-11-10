@@ -22,20 +22,37 @@ var lives = 5;
 var score = 0;
 
 // // Array to contain the game entities
-var frog = [0.0, 0.05, 0.05, 1];
+var frog;
+var frogy = 0;
+
+var fly = [];
+
 var entities;
 var endWalls;
 var endFrogs = new Array();
+var freeSpots;
 
-var left_edge = -0.7;
-var right_edge = 0.7;
+var left_edge = -7;
+var right_edge = 7;
 
 // Variables used to define the interval between checks
 var paused = false;
 var time = 0;
 var interval = 5;
 
-// Grid sizes are defined and the grids filled in with zeroes
+// Frog is initialized
+function resetFrog() {
+    frog = [0.0, 0.5, -1, 1, 0];
+}
+
+function addFly() {
+    if (fly.length === 0) {
+        fly = freeSpots[(Math.floor(Math.random()*freeSpots.length))];
+        freeSpots.splice(fly, 1);
+    }
+}
+
+// Resets the game to start state
 function setupGame() {
     // Game state variables reset
     gameWon = false;
@@ -43,102 +60,178 @@ function setupGame() {
     lives = 5;
 
     // Frog reset
-    frog = [0.0, 0.05, 0.05, 1];
+    resetFrog();
     // Table keeping track of entities initialized
     entities = new Array(9).fill(new Array());
     // Cars
     entities[1] = [
-        [-0.6, 0.15, 0.05, 1, 0.01],
-        [-0.8, 0.15, 0.05, 1, 0.01],
-        [-1, 0.15, 0.05, 1, 0.01]
+        [-6, 1.5, -1, 1, 0.05],
+        [-8, 1.5, -1, 1, 0.05],
+        [-10, 1.5, -1, 1, 0.05]
     ];
     entities[2] = [
-        [0.7, 0.25, 0.05, 2, -0.02]
+        [7, 2.5, -1, 2, -0.1]
     ];
     entities[3] = [
-        [-0.6, 0.35, 0.05, 1, 0.15],
-        [-0.8, 0.35, 0.05, 1, 0.15],
-        [-1.0, 0.35, 0.05, 1, 0.15],
+        [-6, 3.5, -1, 1, 0.075],
+        [-8, 3.5, -1, 1, 0.075],
+        [-10, 3.5, -1, 1, 0.075],
     ];
     // Logs and turtles
-    entities[5] = [
-        [-0.6, 0.55, -0.05, 2, 0.1],
-        [-0.8, 0.55, -0.05, 2, 0.1],
-        [-1, 0.55, -0.05, 2, 0.1]
+    entities[5] = [ // Logs
+        [-6, 5.5, 0, 2, 0.05],
+        [-8, 5.5, 0, 2, 0.05],
+        [-10, 5.5, 0, 2, 0.05]
     ];
-    entities[6] = [
-        [0.7, 0.65, -0.5, 1, -0.2],
-        [0.8, 0.65, -0.5, 1, -0.2],
+    entities[6] = [ // Turtles
+        [7, 6.5, 0, 1, -0.1, 1],
+        [8, 6.5, 0, 1, -0.1, 1],
         
-        [1.1, 0.65, -0.5, 1, -0.2],
-        [1.2, 0.65, -0.5, 1, -0.2],
+        [11, 6.5, 0, 1, -0.1, 1],
+        [12, 6.5, 0, 1, -0.1, 1],
     ];
-    entities[7] = [
-        [-0.6, 0.75, -0.5, 4, 0.15]
+    entities[7] = [ // Logs
+        [-6, 7.5, 0, 4, 0.075]
     ];
-    entities[8] = [
-        [6.5, 0.85, -0.05, 1, -0.1],
-        [7.5, 0.85, -0.05, 1, -0.1],
-        [8.5, 0.85, -0.05, 1, -0.1],
-        [9.5, 0.85, -0.05, 1, -0.1]
+    entities[8] = [ //Turtles
+        [65, 8.5, 0, 1, -0.01, 1],
+        [75, 8.5, 0, 1, -0.01, 1],
+        [85, 8.5, 0, 1, -0.01, -1],
+        [95, 8.5, 0, 1, -0.01, -1]
     ];
     // Back walls
     endWalls = [
-        [-0.5, 0.95, 0.05, 1, 0],
-        [-0.3, 0.95, 0.05, 1, 0],
-        [-0.1, 0.95, 0.05, 1, 0],
-        [0.1, 0.95, 0.05, 1, 0],
-        [0.3, 0.95, 0.05, 1, 0],
-        [0.5, 0.95, 0.05, 1, 0]
+        [-5, 8.5, -1, 1, 0],
+        [-3, 8.5, -1, 1, 0],
+        [-1, 8.5, -1, 1, 0],
+        [1, 8.5, -1, 1, 0],
+        [3, 8.5, -1, 1, 0],
+        [5, 8.5, -1, 1, 0]
     ];
 
     endFrogs = new Array();
+
+    freeSpots = [
+        [-4, 8.5, -1],
+        [-2, 8.5, -1],
+        [0, 8.5, -1],
+        [2, 8.5, -1],
+        [4, 8.5, -1],
+        [0, 4.5, -0.5]
+    ];
+}
+
+function updateMovement() {
+    frog[0] += frog[4];
+    if (frog[0] <= -5) {
+        frog[0] = -5;
+    }
+    else if (frog[0] >= 5) {
+        frog[0] = 5;
+    }
+
+    for (var i = 0; i < entities.length; i++) {
+        if (entities[i]) {
+            for (var j = 0; j < entities.length; j++) {
+                if (entities[i][j]) {
+                    // If object is moving to the right
+                    if(entities[i][j][4] >= 0) {
+                        if(entities[i][j][0]-entities[i][j][3]*0.5 > right_edge) {
+                            entities[i][j][0] = left_edge-entities[i][j][3]*0.5;
+                        }
+                    }
+                    // If object is moving to the left
+                    else {
+                        if(entities[i][j][0]+entities[i][j][3]*0.5 < left_edge) {
+                            entities[i][j][0] = right_edge+entities[i][j][3]*0.5;
+                        }
+                    }
+                    entities[i][j][0] += entities[i][j][4];
+                }
+            }
+        }
+    }
 }
 
 function checkCollision() {
-    var ypos = Math.floor(frog[1]*10);
-    
-    if (ypos == 9) {
+    var y = Math.floor(frog[1]);
+    if (y <= 4 || y >= 9) { frog[4] = 0; }
+    if (fly.length != 0) {
+        if (fly[1] == 4.5 && y == 4) {
+            if (frog[0]-0.4 <= fly[0]-0.3 && fly[0]-0.3 <= frog[0]+0.4) {
+                score += 500;
+                fly = [];
+                freeSpots.push([0, 4.5, -0.5])
+            }
+            else if(frog[0]-0.4 <= fly[0]+0.3 && fly[0]+0.3 <= frog[0]+0.4) {
+                score += 500;
+                fly = [];
+                freeSpots.push([0, 4.5, -0.5]);
+            }
+        } 
+    }
+    if (y == 8) {
         var hitLeaf = false;
         for (var i = 0; i < endWalls.length-1; i++) {
-            if (frog[0] > endWalls[i][0]+0.05 && frog[0] < endWalls[i+1][0]-0.05) {
-                endFrogs.push([endWalls[i][0]+0.1, 0.95, 0.05, 1]);
+            if (frog[0] > endWalls[i][0]+0.2 && frog[0] < endWalls[i+1][0]-0.2) {
+                
+                endFrogs.push([endWalls[i][0]+1, endWalls[i][1], -0.5, 1]);
+                if (fly.length != 0) {
+                    if (fly[0] == endFrogs[endFrogs.length-1][0]) {
+                        score += 500;
+                        fly = [];
+                    }
+                }
                 hitLeaf = true;
                 score += 1000;
+                console.log(score);
+                resetFrog();
             }
         }
         if (!hitLeaf) {
             lives--;
-            frog = [0.0, 0.05, 0.05, 1];
-            if (lives <= 0) {
-                gameOver = true;
+            resetFrog();
+        }
+    }
+    else if (1 <= y && y <= 3) {
+        for(var i = 0; i < entities[y].length; i++) {
+            if (entities[y][i][0]-(entities[y][i][3]*0.5) <= frog[0]-0.4 && frog[0]-0.4 <= entities[y][i][0]+(entities[y][i][3]*0.5)) {
+                lives--;
+                resetFrog();
+            }
+            else if (entities[y][i][0]-(entities[y][i][3]*0.5) <= frog[0]+0.4 && frog[0]+0.4 <= entities[y][i][0]+(entities[y][i][3]*0.5)) {
+                lives--;
+                resetFrog();
             }
         }
     }
-    else {
-        for(var i = 0; i < entities[ypos].length; i++) {
-            console.log(entities[ypos]);
-            var hit = false;
-            if (frog[0]-0.04 <= entities[ypos][i]+ypos[3]*0.05 && frog[0]-0.04 >= entities[ypos][i]-ypos[3]*0.05) {
-                hit = true;
-            }
-            else if (frog[0]+0.04 >= entities[ypos][i]-ypos[3]*0.05 && frog[0]+0.04 <= entities[ypos][i]+ypos[3]*0.05) {
-                hit = true;
-            }
-            if (ypos >= 1 && ypos <= 3) {
-                if (hit) {
-                    lives--;
+    else if (y >= 5 && y <= 7) {
+        var onLog = false;
+        for(var i = 0; i < entities[y].length; i++) {
+            if (entities[y][i][0]-(entities[y][i][3]*0.5) <= frog[0] && frog[0] <= entities[y][i][0]+(entities[y][i][3]*0.5)) {
+                onLog = true;
+                if (y == 6 || y  == 8) {
+                    if (entities[y][i][0] == -1) {
+                        onLog = false;
+                    }
                 }
-            }
-            else if (ypos >= 5 && ypos <= 8) {
-                if (!hit) {
-                    lives--;
-                    frog = [0.0, 0.05, 0.05, 1];
-                }
+                frog[4] = entities[y][i][4];
             }
         }
+        if (!onLog) {
+            lives--;
+            resetFrog();
+        }
     }
-    
+}
+
+function swapTurtles() {
+    for (var i = 0; i < entities[6].length; i++) {
+        entities[6][i][5] *= -1;
+    }
+    for (var i = 0; i < entities[8].length; i++) {
+        entities[6][i][5] *= -1;
+    }
 }
 
 function colorCube() {
@@ -253,33 +346,33 @@ window.onload = function init() {
     window.addEventListener("keydown", function(e){
         switch (e.keyCode) {
             case 37:
-                if (frog[0] > -0.5) {
-                    frog[0] -= 0.1;
+                if (frog[0] > -5) {
+                    frog[0] -= 1;
                 }
-                checkCollision();
                 break;
             case 38:
-                if(frog[1] < 0.95){
-                    frog[1] += 0.1;
+                if(frog[1] < 9.5){
+                    frog[1] += 1;
+                    frogy++;
                 }
-                checkCollision();
                 break;
             case 39:
-                if (frog[0] < 0.5) {
-                    frog[0] += 0.1;
+                if (frog[0] < 5) {
+                    frog[0] += 1;
                 }
-                checkCollision();
                 break;
             case 40:
-                if (frog[1] > 0.05) { frog[1] -= 0.1; }
-                checkCollision();
+                if (frog[1] > 0) {
+                    frog[1] -= 1;
+                    frogy--;
+                }
                 break;
             
-            case 32:
+            /*case 32:
                 createGrids(10, 10, 10);
                 spreadLife(liferate);
                 checkLife();
-                break;
+                break;*/
             case 80:
                 paused = !paused;
             
@@ -292,26 +385,41 @@ window.onload = function init() {
 function render() {
     gl.clear(gl.COlOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    if (endFrogs.length == 5) {
+        gameWon = true;
+        gameOver = true;
+        paused = true;
+    }
+    if (lives <= 0) {
+        gameOver = true;
+        paused = true;
+    }
+
     var mv = mat4();
     mv = mult(mv, rotateX(spinX));
     mv = mult(mv, rotateY(spinY));
 
-    mv1 = mult(mv, translate(frog[0], frog[1], frog[2]));
+    mv1 = mult(mv, translate(frog[0]/10, frog[1]/10, frog[2]/10));
     mv1 = mult(mv1, scalem(0.08, 0.08, 0.08));
     gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
     gl.drawArrays(gl.TRIANGLES, 0, numVertices);
 
     for (var i = 1; i < entities.length; i++) {
         for (var j = 0; j < entities[i].length; j++) {
-            coord = entities[i][j];
-            mv1 = mult(mv, translate(coord[0], coord[1], coord[2]));
-            mv1 = mult(mv1, scalem(coord[3]*0.1, 0.08, 0.08));
-            gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
-            gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+            if ((i == 6 || i == 8) && entities[i][j][5] == -1) {
+
+            }
+            else {
+                coord = entities[i][j];
+                mv1 = mult(mv, translate(coord[0]/10, coord[1]/10, coord[2]/10));
+                mv1 = mult(mv1, scalem(coord[3]*0.1, 0.08, 0.1));
+                gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
+                gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+            }
         }
     }
     for (var i = 0; i < endWalls.length; i++) {
-        mv1 = mult(mv, translate(endWalls[i][0], endWalls[i][1], endWalls[i][2]));
+        mv1 = mult(mv, translate(endWalls[i][0]/10, endWalls[i][1]/10, endWalls[i][2]/10));
         mv1 = mult(mv1, scalem(0.1, 0.1, 0.1));
         gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
         gl.drawArrays(gl.TRIANGLES, 0, numVertices);
@@ -319,22 +427,33 @@ function render() {
 
     if (endFrogs.length > 0) {
         for (var i = 0; i < endFrogs.length; i++) {
-            mv1 = mult(mv, translate(endFrogs[i][0], endFrogs[i][1], endFrogs[i][2]));
+            mv1 = mult(mv, translate(endFrogs[i][0]/10, endFrogs[i][1]/10, endFrogs[i][2]/10));
             mv1 = mult(mv1, scalem(0.08, 0.08, 0.08));
             gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
             gl.drawArrays(gl.TRIANGLES, 0, numVertices);
         }
     }
-    if (!paused) { time += 0.5; }
-    
-    if (time >= interval) {
+
+    if (fly.length != 0) {
+        mv1 = mult(mv, translate(fly[0]/10, fly[1]/10, fly[2]/10));
+        mv1 = mult(mv1, scalem(0.06, 0.06, 0.06));
+        gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
+        gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+    }
+
+    if (!paused) {
+        time += 0.5;
+        if (time % 5 == 0) {
+            swapTurtles();
+        }
+        checkCollision();
+        updateMovement();
+    }
+
+    if (time >= 40 && fly.length == 0) {
+        addFly();
         time = 0;
     }
     
-    if (!frog) {
-        console.log("frog is null");
-    }
-
-    //checkCollision();
     requestAnimationFrame(render);
 }
