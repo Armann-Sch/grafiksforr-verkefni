@@ -26,8 +26,8 @@ var interval = 5;
 var liferate = 0.2;
 
 // Variables subtracted from the value when sclaing a growing or shrinking cube
-var deathsubtract = 0; 
-var birthsubstract = 0.06;
+var deathscale = 0.08; 
+var birthscale = 0.00;
 
 
 // Grid sizes are defined and the grids filled in with zeroes
@@ -264,21 +264,21 @@ function render() {
                     if (grid[i][j][k] == 1) {
                         // Cube remains the same
                         mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
-                        mv1 = mult(mv1, scalem(0.08, 0.08, 0.08));
+                        mv1 = mult(mv1, scalem(0.08, 0.08   , 0.08));
                         gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
                         gl.drawArrays(gl.TRIANGLES, 0, numVertices);
                     }
                     else {
                         // Cube is growing
                         mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
-                        mv1 = mult(mv1, scalem(0.08-birthsubstract, 0.08-birthsubstract, 0.08-birthsubstract));
+                        mv1 = mult(mv1, scalem(birthscale, birthscale, birthscale));
                         gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
                         gl.drawArrays(gl.TRIANGLES, 0, numVertices);
                     }
                 }
                 else if(grid[i][j][k]) {
                     mv1 = mult(mv, translate(i*0.1, j*0.1-0.5, k*0.1));
-                        mv1 = mult(mv1, scalem(0.08-deathsubtract, 0.08-deathsubtract, 0.08-deathsubtract));
+                        mv1 = mult(mv1, scalem(deathscale, deathscale, deathscale));
                         gl.uniformMatrix4fv(matrixLoc, false, flatten(mv1));
                         gl.drawArrays(gl.TRIANGLES, 0, numVertices);
                 }               
@@ -290,11 +290,11 @@ function render() {
     
     if (time >= interval) {
         time = 0;
-        deathsubtract += 0.01;
-        birthsubstract -= 0.01;
-        if (deathsubtract >= 0.06) {
-            deathsubtract = 0.0;
-            birthsubstract = 0.06;
+        deathscale -= 0.01;
+        birthscale += 0.01;
+        if (deathscale <= 0.00) {
+            deathscale = 0.08;
+            birthscale = 0.00;
             updateGrid();
             checkLife();
         }
